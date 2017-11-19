@@ -1,7 +1,9 @@
 extern crate chrono;
+extern crate clap;
 extern crate ini;
 
 use ini::Ini;
+use clap::{Arg, App};
 use chrono::prelude::*;
 use std::fs;
 use std::io;
@@ -65,6 +67,13 @@ impl TrashInfo {
 }
 
 fn main() {
+    let version = env!("CARGO_PKG_VERSION");
+    let matches = App::new("Trash Expiry")
+                    .version(version)
+                    .author("Thomas Kluyver")
+                    .about("Remove old items from trash.")
+                    .get_matches();
+    
     let now = Local::now();
     let tip = Path::new("/home/takluyver/.local/share/Trash/info"); 
     for tif_res in tip.read_dir().unwrap() {
