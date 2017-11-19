@@ -1,5 +1,5 @@
 [package]
-name = "trashbefore"
+name = "trashexpiry"
 version = "0.1.0"
 authors = ["Thomas Kluyver <thomas@kluyver.me.uk>"]
 
