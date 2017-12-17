@@ -1,0 +1,9 @@
+[Unit]
+Description=Discard old files from Trash daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

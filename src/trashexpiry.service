@@ -1,0 +1,6 @@
+[Unit]
+Description=Discard old files from Trash
+
+[Service]
+Type=oneshot
+ExecStart=trashexpiry
