@@ -8,6 +8,7 @@ use clap::{Arg, App};
 use chrono::prelude::*;
 use std::fs;
 use std::io;
+use std::iter::Iterator;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -76,10 +77,10 @@ struct Config {
 
 fn find_config_files<P>(relpath: P) -> Vec<PathBuf> where P:AsRef<Path> {
     let basedirs = xdg::BaseDirectories::new().unwrap();
-    let mut config_dirs = basedirs.get_config_dirs();
-    config_dirs.reverse();  // Ordered from least preferred to most preferred
-    config_dirs.push(basedirs.get_config_home());
-    println!("XDG Config dirs: {:?}", config_dirs);
+    // Ordered from least preferred to most preferred
+    let config_home = [basedirs.get_config_home()];
+    let extra_config_dirs = basedirs.get_config_dirs();
+    let config_dirs = config_home.iter().chain(extra_config_dirs.iter().rev());
     let mut files = Vec::new();
     for dir in config_dirs {
         let file = dir.join(&relpath);
