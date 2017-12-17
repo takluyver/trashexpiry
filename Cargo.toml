@@ -7,3 +7,4 @@ authors = ["Thomas Kluyver <thomas@kluyver.me.uk>"]
 rust-ini = "0.10.0"
 chrono = "0.4"
 clap = "2.27"
+xdg = "^2.1"

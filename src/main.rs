@@ -1,6 +1,7 @@
 extern crate chrono;
 extern crate clap;
 extern crate ini;
+extern crate xdg;
 
 use ini::Ini;
 use clap::{Arg, App};
@@ -8,6 +9,7 @@ use chrono::prelude::*;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 #[derive(Debug)]
 struct TrashInfo {
@@ -66,6 +68,55 @@ impl TrashInfo {
     }
 }
 
+#[derive(Debug)]
+struct Config {
+    delete_after_days: i64,
+    warn_after_days: i64,
+}
+
+impl Config {
+    fn default() -> Config {
+        return Config{
+            delete_after_days: 60,
+            warn_after_days: 50,
+        };
+    }
+    
+    fn load() -> Config {
+        let dflt = Config::default();
+        let ini_path = match xdg::BaseDirectories::new().unwrap().find_config_file("trashexpiry.ini") {
+            Some(p) => p,
+            None => return dflt
+        };
+        let ini = match Ini::load_from_file(ini_path) {
+            Ok(data) => data,
+            Err(e) => {
+                println!("Error reading config file: {}", e);
+                return dflt;
+            }
+        };
+        let delete_after_s = ini.get_from::<String>(None, "delete_after_days");
+        let delete_after = delete_after_s.map(|s| {
+            i64::from_str(s).unwrap_or_else(|_| {
+                println!("Invalid integer {:?} for delete_after_days; using default.", s);
+                dflt.delete_after_days
+            })
+        }).unwrap_or(dflt.delete_after_days);
+        
+        let warn_after = ini.get_from::<String>(None, "warn_after_days").map(|s| {
+            i64::from_str(s).unwrap_or_else(|_| {
+                println!("Invalid integer {:?} for warn_after_days; using default.", s);
+                dflt.warn_after_days
+            })
+        }).unwrap_or(dflt.warn_after_days);
+
+        Config {
+            delete_after_days: delete_after,
+            warn_after_days: warn_after,
+        }
+    }
+}
+
 fn main() {
     let version = env!("CARGO_PKG_VERSION");
     let matches = App::new("Trash Expiry")
@@ -75,6 +126,11 @@ fn main() {
                     .get_matches();
     
     let now = Local::now();
+    let config = Config::load();
+    println!("Trashexpiry config:");
+    println!("  After {} days, warn", config.warn_after_days);
+    println!("  After {} days, delete", config.delete_after_days);
+
     let tip = Path::new("/home/takluyver/.local/share/Trash/info"); 
     for tif_res in tip.read_dir().unwrap() {
         let tif = match tif_res {
@@ -99,12 +155,16 @@ fn main() {
         match TrashInfo::from_info_file(&tif) {
             Ok(ti) => {
                 let days_ago = now.signed_duration_since(ti.deletion_date).num_days();
-                println!("{:?} deleted {} days ago", ti.original_path, days_ago);
-                if days_ago > 60 {
-                    match ti.delete() {
-                        Ok(_) => println!("Erased"),
-                        Err(e) => println!("Error erasing: {}", e)
-                    }
+                if days_ago >= config.delete_after_days {
+                    println!("{}\n ╰ Erasing (deleted {} days ago)",
+                        ti.original_path.to_string_lossy(), days_ago);
+                    ti.delete().unwrap_or_else(|e| {
+                        println!(" ! Error erasing: {}", e);
+                    });
+                } else if days_ago >= config.warn_after_days {
+                    let days_left = config.delete_after_days - days_ago;
+                    println!("{}\n ╰ Will be erased in {} days (deleted {} days ago)",
+                        ti.original_path.to_string_lossy(), days_left, days_ago);
                 }
             },
             Err(e) => {println!("Error reading trash info: {}", e)}
