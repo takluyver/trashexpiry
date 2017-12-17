@@ -74,6 +74,22 @@ struct Config {
     warn_after_days: i64,
 }
 
+fn find_config_files<P>(relpath: P) -> Vec<PathBuf> where P:AsRef<Path> {
+    let basedirs = xdg::BaseDirectories::new().unwrap();
+    let mut config_dirs = basedirs.get_config_dirs();
+    config_dirs.reverse();  // Ordered from least preferred to most preferred
+    config_dirs.push(basedirs.get_config_home());
+    println!("XDG Config dirs: {:?}", config_dirs);
+    let mut files = Vec::new();
+    for dir in config_dirs {
+        let file = dir.join(&relpath);
+        if file.is_file() {
+            files.push(file);
+        }
+    }
+    files
+}
+
 impl Config {
     fn default() -> Config {
         return Config{
@@ -83,37 +99,33 @@ impl Config {
     }
     
     fn load() -> Config {
-        let dflt = Config::default();
-        let ini_path = match xdg::BaseDirectories::new().unwrap().find_config_file("trashexpiry.ini") {
-            Some(p) => p,
-            None => return dflt
-        };
-        let ini = match Ini::load_from_file(ini_path) {
-            Ok(data) => data,
-            Err(e) => {
-                println!("Error reading config file: {}", e);
-                return dflt;
+        let mut cfg = Config::default();
+        for config_file in find_config_files("trashexpiry.ini") {
+            println!("Loading config from {:?}", config_file);
+            let ini = match Ini::load_from_file(config_file) {
+                Ok(data) => data,
+                Err(e) => {
+                    println!("Error reading config file: {}", e);
+                    continue;
+                }
+            };
+            
+            if let Some(s) = ini.get_from::<String>(None, "delete_after_days") {
+                match i64::from_str(s) {
+                    Ok(i) => cfg.delete_after_days = i,
+                    Err(_) => println!("Invalid integer {:?} for delete_after_days", s)
+                }
             }
-        };
-        let delete_after_s = ini.get_from::<String>(None, "delete_after_days");
-        let delete_after = delete_after_s.map(|s| {
-            i64::from_str(s).unwrap_or_else(|_| {
-                println!("Invalid integer {:?} for delete_after_days; using default.", s);
-                dflt.delete_after_days
-            })
-        }).unwrap_or(dflt.delete_after_days);
-        
-        let warn_after = ini.get_from::<String>(None, "warn_after_days").map(|s| {
-            i64::from_str(s).unwrap_or_else(|_| {
-                println!("Invalid integer {:?} for warn_after_days; using default.", s);
-                dflt.warn_after_days
-            })
-        }).unwrap_or(dflt.warn_after_days);
 
-        Config {
-            delete_after_days: delete_after,
-            warn_after_days: warn_after,
+            if let Some(s) = ini.get_from::<String>(None, "warn_after_days") {
+                match i64::from_str(s) {
+                    Ok(i) => cfg.warn_after_days = i,
+                    Err(_) => println!("Invalid integer {:?} for warn_after_days", s)
+                }
+            }
         }
+
+        cfg
     }
 }
 
