@@ -8,8 +8,10 @@ use clap::{Arg, App};
 use chrono::prelude::*;
 use std::fs;
 use std::io;
+use std::io::prelude::*;
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::str::FromStr;
 
 #[derive(Debug)]
@@ -130,13 +132,49 @@ impl Config {
     }
 }
 
+fn install_timer() -> Result<(), io::Error> {
+    let basedirs = xdg::BaseDirectories::new()?;
+    let systemd_dir = basedirs.get_config_home().join("systemd/user");
+    println!("Installing to {}", systemd_dir.to_string_lossy());
+    
+    let service_template = include_str!("trashexpiry.service");
+    let trashexpiry_bin = std::env::current_exe()?;
+    let service_content = service_template.replace("trashexpiry_bin", trashexpiry_bin.to_str().unwrap());
+    let mut service_file = fs::File::create(systemd_dir.join("trashexpiry.service"))?;
+    service_file.write_all(&service_content.into_bytes())?;
+    println!("Written trashexpiry.service");
+
+    let mut timer_file = fs::File::create(systemd_dir.join("trashexpiry.timer"))?;
+    timer_file.write_all(include_bytes!("trashexpiry.timer"))?;
+    println!("Written trashexpiry.timer");
+
+    if Command::new("systemctl").args(&["--user", "enable", "trashexpiry.timer"]).status()?.success() {
+        println!("Installed timer; old trash will be cleared daily");
+        Ok(())
+    } else {
+        Err(io::Error::new(io::ErrorKind::Other, "systemctl indicated failure"))
+    }
+}
+
 fn main() {
     let version = env!("CARGO_PKG_VERSION");
     let matches = App::new("Trash Expiry")
                     .version(version)
                     .author("Thomas Kluyver")
                     .about("Remove old items from trash.")
+                    .arg(Arg::with_name("install")
+                         .long("install-timer")
+                         .help("Install a systemd timer to run Trashexpiry daily"))
                     .get_matches();
+    
+    if matches.is_present("install") {
+        if let Err(e) = install_timer() {
+            println!("Error installing timer: {}", e);
+            std::process::exit(1);
+        } else {
+            return;
+        }
+    }
     
     let now = Local::now();
     let config = Config::load();
