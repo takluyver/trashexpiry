@@ -18,7 +18,8 @@ trash. But people often fall into one of two patterns:
 
 * Some delete everything to trash. No disk space is freed, and data you wanted
   to get rid of is still there. When you finally look at the trash, there are
-  2000 files there, far too many to think about. Click empty and hope.
+  2000 files there, far too many to think about. You empty it and hope
+  there was nothing important there.
 * Others either empty trash obsessively, or use shift-delete to bypass it,
   so that you don't need to empty it. This is what I do, and I've found myself
   hard-deleting files only to realise the mistake seconds later.
