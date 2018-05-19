@@ -1,8 +1,10 @@
 [package]
 name = "trashexpiry"
-version = "0.1.0"
+version = "0.1.1"
 license = "MIT"
 description = "Delete files that have been in Linux trash for 60 days."
+repository = "https://github.com/takluyver/trashexpiry"
+readme = "README.md"
 authors = ["Thomas Kluyver <thomas@kluyver.me.uk>"]
 
 [dependencies]
