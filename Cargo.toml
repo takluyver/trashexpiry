@@ -1,6 +1,8 @@
 [package]
 name = "trashexpiry"
 version = "0.1.0"
+license = "MIT"
+description = "Delete files that have been in Linux trash for 60 days."
 authors = ["Thomas Kluyver <thomas@kluyver.me.uk>"]
 
 [dependencies]

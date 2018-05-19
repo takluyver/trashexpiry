@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 
+/// Represents an item in trash, based on the XDG Trash specification.
 #[derive(Debug)]
 struct TrashInfo {
     info_file: PathBuf,
@@ -22,6 +23,8 @@ struct TrashInfo {
     deletion_date: DateTime<Local>,
 }
 
+
+/// From a trash info file, find the corresponding trashed file or directory.
 fn info_to_file(info_file: &Path) -> Result<PathBuf, String> {
     let trash_dir = match info_file.parent() {
         Some(info_dir) => {
@@ -42,6 +45,7 @@ fn info_to_file(info_file: &Path) -> Result<PathBuf, String> {
 }
 
 impl TrashInfo {
+    /// Load a trash info file (see the XDG trash spec).
     fn from_info_file(info_file: &Path) -> Result<TrashInfo, String> {
         let info = Ini::load_from_file(info_file).map_err(|err| err.to_string())?;
         let sec = match info.section(Some("Trash Info")) {
@@ -64,6 +68,7 @@ impl TrashInfo {
         })
     }
     
+    /// Discard this item from trash. Deletes both the trashed data and the associated info file.
     fn delete(self) -> Result<(), io::Error> {
         fs::remove_file(self.trashed_file)?;
         fs::remove_file(self.info_file)?;
@@ -77,6 +82,7 @@ struct Config {
     warn_after_days: i64,
 }
 
+/// Find any config files that exist - `trashexpiry.ini` in any XDG config folders.
 fn find_config_files<P>(relpath: P) -> Vec<PathBuf> where P:AsRef<Path> {
     let basedirs = xdg::BaseDirectories::new().unwrap();
     // Ordered from least preferred to most preferred
@@ -94,13 +100,15 @@ fn find_config_files<P>(relpath: P) -> Vec<PathBuf> where P:AsRef<Path> {
 }
 
 impl Config {
+    /// Create the default config.
     fn default() -> Config {
         return Config{
             delete_after_days: 60,
             warn_after_days: 50,
         };
     }
-    
+
+    /// Load config from files, providing the defaults for any values not set.
     fn load() -> Config {
         let mut cfg = Config::default();
         for config_file in find_config_files("trashexpiry.ini") {
@@ -132,6 +140,7 @@ impl Config {
     }
 }
 
+/// Install and enable the systemd service and timer.
 fn install_timer() -> Result<(), io::Error> {
     let basedirs = xdg::BaseDirectories::new()?;
     let systemd_dir = basedirs.get_config_home().join("systemd/user");
