@@ -1,13 +1,25 @@
 **Trashexpiry** deletes old items from your (Linux) desktop trash.
 
+Usage:
+
+```shell
+# Install (cargo is Rust's package manager - see https://www.rust-lang.org/)
+cargo install trashexpiry
+
+# Run now
+trashexpiry
+
+# Set up to run daily
+trashexpiry --install-timer
+```
+
 By default, it deletes files which have been in trash for over 60 days.
 This time limit is configurable in `~/.config/trashexpiry.ini`:
 
-    warn_after_days = 50
-    delete_after_days = 60
-
-Trashexpiry is meant to be used with a systemd timer to run it daily.
-To install this, use the `--install-timer` command line option.
+```ini
+warn_after_days = 50
+delete_after_days = 60
+```
 
 I wrote this partly to get more familiar with Rust. Use at your own risk.
 
