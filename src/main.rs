@@ -195,7 +195,8 @@ fn main() {
     println!("  After {} days, warn", config.warn_after_days);
     println!("  After {} days, delete", config.delete_after_days);
 
-    let tip = Path::new("/home/takluyver/.local/share/Trash/info"); 
+    let mut status = 0;
+    let tip = Path::new("/home/takluyver/.local/share/Trash/info");
     for tif_res in tip.read_dir().unwrap() {
         let tif = match tif_res {
             Ok(dir_entry) => dir_entry.path(),
@@ -224,6 +225,7 @@ fn main() {
                         ti.original_path.to_string_lossy(), days_ago);
                     ti.delete().unwrap_or_else(|e| {
                         println!(" ! Error erasing: {}", e);
+                        status = 1;
                     });
                 } else if days_ago >= config.warn_after_days {
                     let days_left = config.delete_after_days - days_ago;
@@ -231,7 +233,11 @@ fn main() {
                         ti.original_path.to_string_lossy(), days_left, days_ago);
                 }
             },
-            Err(e) => {println!("Error reading trash info: {}", e)}
+            Err(e) => {
+                println!("Error reading trash info: {}", e);
+                status = 1;
+            }
         }
     };
+    std::process::exit(status);
 }
