@@ -196,6 +196,7 @@ fn main() {
     println!("  After {} days, delete", config.delete_after_days);
 
     let mut status = 0;
+    let (mut files_checked, mut files_erased) = (0, 0);
 
     let tip = {
         let basedirs = xdg::BaseDirectories::new().unwrap();
@@ -225,6 +226,7 @@ fn main() {
         }
         match TrashInfo::from_info_file(&tif) {
             Ok(ti) => {
+                files_checked += 1;
                 let days_ago = now.signed_duration_since(ti.deletion_date).num_days();
                 if days_ago >= config.delete_after_days {
                     println!("{}\n ╰ Erasing (deleted {} days ago)",
@@ -233,6 +235,7 @@ fn main() {
                         println!(" ! Error erasing: {}", e);
                         status = 1;
                     });
+                    files_erased += 1;
                 } else if days_ago >= config.warn_after_days {
                     let days_left = config.delete_after_days - days_ago;
                     println!("{}\n ╰ Will be erased in {} days (deleted {} days ago)",
@@ -245,5 +248,6 @@ fn main() {
             }
         }
     };
+    println!("Checked {} files, erased {}.", files_checked, files_erased);
     std::process::exit(status);
 }
