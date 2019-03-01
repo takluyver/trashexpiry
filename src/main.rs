@@ -70,7 +70,11 @@ impl TrashInfo {
     
     /// Discard this item from trash. Deletes both the trashed data and the associated info file.
     fn delete(self) -> Result<(), io::Error> {
-        fs::remove_file(self.trashed_file)?;
+        if self.trashed_file.is_dir() {
+            fs::remove_dir_all(self.trashed_file)?;
+        } else {
+            fs::remove_file(self.trashed_file)?;
+        }
         fs::remove_file(self.info_file)?;
         Ok(())
     }
