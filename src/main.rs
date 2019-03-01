@@ -196,7 +196,13 @@ fn main() {
     println!("  After {} days, delete", config.delete_after_days);
 
     let mut status = 0;
-    let tip = Path::new("/home/takluyver/.local/share/Trash/info");
+
+    let tip = {
+        let basedirs = xdg::BaseDirectories::new().unwrap();
+        basedirs.get_data_home().join("Trash/info")
+    };
+    println!("Trash info dir: {}", tip.to_string_lossy());
+
     for tif_res in tip.read_dir().unwrap() {
         let tif = match tif_res {
             Ok(dir_entry) => dir_entry.path(),
